@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gabriel Duque Quest | 6 Meses</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        :root {
+            --bg-dark: #0a0314; --bg-card: #14092b; --neon-pink: #ff007f;
+            --neon-cyan: #00f0ff; --neon-green: #39ff14; --neon-yellow: #fff000;
+            --text-white: #ffffff;
+        }
+        body {
+            background-color: var(--bg-dark); color: var(--text-white);
+            font-family: 'VT323', monospace; font-size: 24px;
+            overflow: hidden; scroll-behavior: smooth;
+        }
+        body::after {
+            content: " "; display: block; position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+            z-index: 9999; background-size: 100% 4px, 6px 100%; pointer-events: none;
+        }
+        .hud {
+            position: fixed; top: 0; left: 0; width: 100%; height: 60px;
+            background-color: rgba(10, 3, 20, 0.9); border-bottom: 4px solid var(--neon-pink);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px; z-index: 1000; font-family: 'Press Start 2P', cursive; font-size: 11px;
+        }
+        .hud-player { color: var(--neon-cyan); }
+        .hud-hp { color: var(--neon-pink); }
+        .hud-xp-container { display: flex; align-items: center; gap: 10px; }
+        .xp-bar-outer { width: 150px; height: 16px; border: 2px solid var(--text-white); padding: 2px; background: #000; }
+        .xp-bar-inner { width: 0%; height: 100%; background-color: var(--neon-green); transition: width 0.4s ease; }
+        .game-viewport { height: 100vh; overflow-y: hidden; scroll-snap-type: y mandatory; }
+        .stage {
+            width: 100vw; height: 100vh; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; padding-top: 60px;
+            scroll-snap-align: start; position: relative;
+            background: radial-gradient(circle, #1a0836 0%, #0a0314 100%);
+        }
+        h1.game-title {
+            font-family: 'Press Start 2P', cursive; font-size: 40px; color: var(--neon-yellow);
+            text-shadow: 4px 4px 0px var(--neon-pink); margin-bottom: 20px; text-align: center;
+            animation: pulse 1.5s infinite alternate;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); text-shadow: 4px 4px 0px var(--neon-pink); }
+            100% { transform: scale(1.03); text-shadow: -4px -4px 0px var(--neon-cyan); }
+        }
+        .level-indicator {
+            font-family: 'Press Start 2P', cursive; font-size: 14px;
+            background-color: var(--neon-pink); padding: 8px 16px; margin-bottom: 25px;
+            box-shadow: 4px 4px 0px #000; color: #fff; text-transform: uppercase;
+        }
+        .photo-gallery {
+            display: flex; gap: 20px; justify-content: center;
+            margin-bottom: 25px; flex-wrap: wrap; max-width: 900px;
+        }
+        .arcade-frame {
+            background-color: #000; border: 4px solid var(--text-white);
+            padding: 8px; width: 240px; height: 240px; position: relative; transition: transform 0.2s ease;
+            cursor: pointer; /* Indica que é clicável */
+        }
+        .arcade-frame:hover { transform: scale(1.05); z-index: 10; }
+        .arcade-frame img, .arcade-frame video { 
+            width: 100%; height: 100%; object-fit: cover; border: 2px solid #222; 
+            pointer-events: none; /* Desativa os controles na miniatura para o clique funcionar no frame */
+        }
+        .arcade-frame:nth-child(1) { box-shadow: 6px 6px 0px var(--neon-cyan); }
+        .arcade-frame:nth-child(2) { box-shadow: 6px 6px 0px var(--neon-pink); }
+        .arcade-frame:nth-child(3) { box-shadow: 6px 6px 0px var(--neon-yellow); }
+        .dialogue-box {
+            width: 760px; min-height: 100px; background-color: #000;
+            border: 4px solid var(--neon-green); border-radius: 4px; padding: 20px;
+            position: relative; margin-bottom: 25px; box-shadow: 5px 5px 0px rgba(0,0,0,0.5);
+        }
+        .dialogue-text { font-size: 28px; color: var(--neon-green); line-height: 1.4; min-height: 60px; }
+        
+        /* NOVO: Container para agrupar os botões de navegação */
+        .btn-container { display: flex; gap: 20px; justify-content: center; }
+
+        .btn-pixel {
+            font-family: 'Press Start 2P', cursive; font-size: 14px; color: var(--text-white);
+            background-color: var(--neon-pink); padding: 12px 24px; border: 4px solid var(--text-white);
+            box-shadow: 4px 4px 0px #000; cursor: pointer; text-transform: uppercase; transition: all 0.1s ease;
+        }
+        .btn-pixel:hover {
+            background-color: var(--neon-cyan); color: #000; box-shadow: 6px 6px 0px var(--neon-yellow); transform: translate(-2px, -2px);
+        }
+        .btn-pixel:active { box-shadow: 1px 1px 0px #000; transform: translate(2px, 2px); }
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+        .final-card {
+            background-color: var(--bg-card); border: 4px solid var(--neon-pink); padding: 30px;
+            width: 750px; text-align: center; box-shadow: 10px 10px 0px var(--neon-cyan);
+        }
+        .final-card h2 { font-family: 'Press Start 2P', cursive; font-size: 22px; color: var(--neon-yellow); margin-bottom: 20px; }
+        .love-textarea {
+            width: 100%; height: 160px; background-color: #000; border: 3px dashed var(--neon-cyan);
+            color: var(--neon-green); padding: 15px; font-family: 'VT323', monospace; font-size: 26px;
+            resize: none; outline: none; margin-bottom: 20px;
+        }
+        .choice-container { display: flex; justify-content: center; gap: 30px; margin-top: 15px; }
+        .pixel-heart {
+            position: absolute; font-size: 20px; color: var(--neon-pink); pointer-events: none;
+            z-index: 0; opacity: 0.7; animation: floatUp 4s linear infinite;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) scale(0.5); opacity: 1; }
+            100% { transform: translateY(-10vh) scale(1.2); opacity: 0; }
+        }
+
+        /* NOVO: Estilos do Modal de visualização de mídia */
+        .modal {
+            display: none; position: fixed; z-index: 10000; left: 0; top: 0;
+            width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85);
+            justify-content: center; align-items: center;
+        }
+        .modal-content {
+            max-width: 80vw; max-height: 80vh; border: 4px solid var(--neon-pink);
+            box-shadow: 0 0 20px var(--neon-cyan); outline: none;
+        }
+        .modal-close {
+            position: absolute; top: 30px; right: 40px; color: var(--neon-green);
+            font-size: 40px; font-family: 'VT323', monospace; cursor: pointer; transition: 0.2s;
+        }
+        .modal-close:hover { color: var(--neon-pink); transform: scale(1.2); }
+
+        /* CONTAINER GERAL DO PLAYER */
+.music-player-ui {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 80px;
+    height: 80px;
+    z-index: 1000; /* Fica acima de tudo, mas abaixo do modal */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* O DISCO DE VINIL */
+.vinyl-record {
+    width: 60px;
+    height: 60px;
+    background-color: #111;
+    border-radius: 50%;
+    border: 2px solid var(--text-white);
+    box-shadow: 0 0 10px var(--neon-pink);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Efeito de ranhuras do disco usando gradiente radial */
+    background-image: repeating-radial-gradient(#111 0px, #222 2px, #111 4px);
+    
+    /* A animação de giro está configurada, mas inicia pausada */
+    animation: spinRecord 2s linear infinite;
+    animation-play-state: paused; 
+}
+
+/* O CENTRO DO DISCO */
+.vinyl-center {
+    width: 18px;
+    height: 18px;
+    background-color: var(--neon-cyan);
+    border-radius: 50%;
+    border: 3px solid #000;
+}
+
+/* CLASSE QUE SERÁ ADICIONADA VIA JS PARA RODAR O DISCO */
+.vinyl-record.playing {
+    animation-play-state: running;
+}
+
+@keyframes spinRecord {
+    100% { transform: rotate(360deg); }
+}
+
+/* AS NOTAS MUSICAIS */
+.music-notes {
+    position: absolute;
+    top: -20px;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    display: none; /* Escondido até a música tocar */
+}
+
+/* CLASSE PARA MOSTRAR AS NOTAS */
+.music-notes.playing {
+    display: block;
+}
+
+.note {
+    position: absolute;
+    font-size: 18px;
+    opacity: 0;
+    animation: floatNote 3s linear infinite;
+}
+
+/* Posições, cores e atrasos diferentes para não subirem todas juntas */
+.note-1 { left: 0%; animation-delay: 0s; color: var(--neon-green); }
+.note-2 { left: 50%; animation-delay: 1.2s; color: var(--neon-pink); font-size: 24px;}
+.note-3 { left: 90%; animation-delay: 2.4s; color: var(--neon-yellow); }
+
+@keyframes floatNote {
+    0% { transform: translateY(0) scale(0.8) rotate(0deg); opacity: 1; }
+    50% { transform: translateY(-50px) translateX(15px) scale(1.2) rotate(15deg); opacity: 0.8; }
+    100% { transform: translateY(-100px) translateX(-15px) scale(1.5) rotate(-15deg); opacity: 0; }
+}
+    </style>
+</head>
+<body>
+
+    <body>
+    <!-- ÁUDIO DE FUNDO -->
+    <audio id="bg-music" loop>
+        <source src="aza.mp3" type="audio/mp3">
+    </audio>
+    <div class="music-player-ui">
+    <div class="vinyl-record" id="vinyl">
+        <div class="vinyl-center"></div>
+    </div>
+    <div class="music-notes" id="notes">
+        <span class="note note-1">🎵</span>
+        <span class="note note-2">🎶</span>
+        <span class="note note-3">🎵</span>
+    </div>
+    </div>
+    <div class="hud">
+        <div class="hud-player">P1: JULIA <span style="color:#fff;">&</span> P2: GABRIEL</div>
+        <div class="hud-xp-container">
+            <span>PROGRESS:</span>
+            <div class="xp-bar-outer"><div class="xp-bar-inner" id="xp-bar"></div></div>
+            <span id="xp-text">0%</span>
+        </div>
+        <div class="hud-hp">HP <span class="blink">❤️❤️❤️</span></div>
+    </div>
+
+    <!-- JANELA DO JOGO -->
+    <div class="game-viewport" id="viewport">
+
+        <!-- TELA INICIAL (0) -->
+        <section class="stage" id="stage-0">
+            <h1 class="game-title">FELIZ DIA DOS NAMORADOS!!</h1>
+            <p style="font-size: 32px; color: var(--neon-cyan); margin-bottom: 40px; text-transform: uppercase; font-family:'Press Start 2P'; font-size:14px;">E 6 meses te amando :)</p>
+            <button class="btn-pixel" onclick="nextStage(1)">PRESS START</button>
+        </section>
+
+        <!-- MÊS 1 - PARTE 1 (1) -->
+        <section class="stage" id="stage-1">
+            <div class="level-indicator">Nosso primeiro encontro</div>
+            <div class="photo-gallery">
+                <div class="arcade-frame"><img src="primeiro_date.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><video controls><source src="fliperama.MOV" type="video/mp4"></video></div>
+                <div class="arcade-frame"><img src="nascerdoSol.JPEG" alt="Foto"></div>
+            </div>
+            <div class="dialogue-box">
+                <div class="dialogue-text" data-text="Você sabe que tenho memória ruim, mas nunca vou me esquecer da sensação que senti naquela madrugada na praia. Arrepios com você tocando meu corpo a primeira vez e dizendo coisas no meu ouvido. Obrigada por ter certeza da gente desde o primeiro dia."></div>
+            </div>
+            <div class="btn-container">
+                <button class="btn-pixel" onclick="nextStage(0)">< VOLTAR</button>
+                <button class="btn-pixel" onclick="nextStage(2)">CONTINUAR ></button>
+            </div>
+        </section>
+        <section class="stage" id="stage-2">
+            <div class="level-indicator">1° vez na tua casa, 1° date em CG, 1° foto de alianças</div>
+            <div class="photo-gallery">
+                <div class="arcade-frame"><img src="primeira_foto.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="primeirodate.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="começo_alianças.JPEG" alt="Foto"></div>
+            </div>
+            <div class="dialogue-box">
+                <div class="dialogue-text" data-text="Quando você voltou de viagem e a gente não se desgrudou por semanas, vivendo bem mais do que 7 dates, ultrapassando desafios e escolhendo ficar juntos. É bom demais viver contigo :)"></div>
+            </div>
+            <div class="btn-container">
+                <button class="btn-pixel" onclick="nextStage(1)">< VOLTAR</button>
+                <button class="btn-pixel" onclick="nextStage(3)">CONTINUAR ></button>
+            </div>
+        </section>
+        <!-- MÊS 1 - PARTE 2 (2) -->
+        <section class="stage" id="stage-3">
+            <div class="level-indicator">Os presentes de amor e os primeiros encontros</div>
+            <div class="photo-gallery">
+                <div class="arcade-frame"><img src="começo_pedido.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="primeirosDates_pastel.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="primeirosDates.JPEG" alt="Foto"></div>
+            </div>
+            <div class="dialogue-box">
+                <div class="dialogue-text" data-text="Te agradeço por se desafiar em criar coisas para demonstrar seu amor por mim e por sempre me acompanhar nos roles que quero ir."></div>
+            </div>
+            <div class="btn-container">
+                <button class="btn-pixel" onclick="nextStage(2)">< VOLTAR</button>
+                <button class="btn-pixel" onclick="nextStage(4)">CONTINUAR ></button>
+            </div>
+        </section>
+
+        <!-- MÊS 1 - PARTE 3 (3) -->
+        <section class="stage" id="stage-4">
+            <div class="level-indicator">Conheceu as meninas e veio aqui em casa a 1° vez</div>
+            <div class="photo-gallery">
+                <div class="arcade-frame"><img src="presente_amigas.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="casa_parede.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="date_amigas.JPEG" alt="Foto"></div>
+            </div>
+            <div class="dialogue-box">
+                <div class="dialogue-text" data-text="Foi muito singular te apresentar as minhas melhores amigas, te ver se incluindo na minha vida aos poucos. Obrigada pela mensagem de Gabriel Diniz na minha parede, sou fã."></div>
+            </div>
+            <div class="btn-container">
+                <button class="btn-pixel" onclick="nextStage(3)">< VOLTAR</button>
+                <button class="btn-pixel" onclick="nextStage(5)">CONTINUAR ></button>
+            </div>
+        </section>
+
+        <!-- MÊS 1 - PARTE 4 (4) -->
+        <section class="stage" id="stage-5">
+            <div class="level-indicator">PRIMEIRO NATAL E ANO NOVO JUNTOS</div>
+            <div class="photo-gallery">
+                <div class="arcade-frame"><img src="primeiroNatal.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="family_anoNovo.JPEG"></div>
+                <div class="arcade-frame"><img src="anoNovo1.JPEG" alt="Foto"></div>
+            </div>
+            <div class="dialogue-box">
+                <div class="dialogue-text" data-text="É simplesmente natural te ter por perto e te acolher na minha família. Foi incrível nosso primeiro final de ano, tenho certeza que passaremos todos os reveillons dançando forró juntos."></div>
+            </div>
+            <div class="btn-container">
+                <button class="btn-pixel" onclick="nextStage(4)">< VOLTAR</button>
+                <button class="btn-pixel" onclick="nextStage(6)">CONTINUAR ></button>
+            </div>
+        </section>
+
+        <!-- MÊS 2 (5) -->
+        <section class="stage" id="stage-6">
+            <div class="level-indicator">A viagem pro Sitio Jerimum</div>
+            <div class="photo-gallery">
+                <div class="arcade-frame"><img src="voltaDoSitio.JPEG" alt="Foto"></div>
+                <div class="arcade-frame">
+                    <video controls><source src="voltaDinos.MOV" type="video/mp4"></video>
+                </div>
+                <div class="arcade-frame"><img src="jerimum_volta.JPEG" alt="Foto"></div>
+            </div>
+            <div class="dialogue-box">
+                <div class="dialogue-text" data-text="Simplesmente incrível ter sua companhia no meu lugar favorito do mundo. E é incrível poder chorar de amor e alegria contigo."></div>
+            </div>
+            <div class="btn-container">
+                <button class="btn-pixel" onclick="nextStage(5)">< VOLTAR</button>
+                <button class="btn-pixel" onclick="nextStage(7)">CONTINUAR ></button>
+            </div>
+        </section>
+
+        <!-- MÊS 3 (6) -->
+        <section class="stage" id="stage-7">
+            <div class="level-indicator">Nossa família se conhecendo</div>
+            <div class="photo-gallery">
+                <div class="arcade-frame"><img src="familia_kaka.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="family_tiaAdriana.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="familia_vania.JPEG" alt="Foto"></div>
+            </div>
+            <div class="dialogue-box">
+                <div class="dialogue-text" data-text="É que você agora é minha família e eu virei parte da sua, todo mundo te adora por aqui."></div>
+            </div>
+            <div class="btn-container">
+                <button class="btn-pixel" onclick="nextStage(6)">< VOLTAR</button>
+                <button class="btn-pixel" onclick="nextStage(8)">CONTINUAR ></button>
+            </div>
+        </section>
+
+        <!-- MÊS 4 (7) -->
+        <section class="stage" id="stage-8">
+            <div class="level-indicator">NOSSO PRIMEIRO CARNAVAL</div>
+            <div class="photo-gallery">
+                <div class="arcade-frame"><img src="us_carnaval.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="us_carnaval2.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="Us_carnaval3.JPEG" alt="Foto"></div>
+            </div>
+            <div class="dialogue-box">
+                <div class="dialogue-text" data-text="Que alegria festejar contigo, meu amor! Somos únicos, livres e felizes quando estamos jogados pelo mundo. Nosso carnaval foi perfeito!"></div>
+            </div>
+            <div class="btn-container">
+                <button class="btn-pixel" onclick="nextStage(7)">< VOLTAR</button>
+                <button class="btn-pixel" onclick="nextStage(9)">CONTINUAR ></button>
+            </div>
+        </section>
+
+        <!-- MÊS 5 (8) -->
+        <section class="stage" id="stage-9">
+            <div class="level-indicator">NOSSO PRIMEIRO CARNAVAL</div>
+            <div class="photo-gallery">
+                <div class="arcade-frame"><img src="cervejinha_carnaval.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="family_carnaval.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="ele_carnaval.JPEG" alt="Foto"></div>
+            </div>
+            <div class="dialogue-box">
+                <div class="dialogue-text" data-text="Nosso amor é festa, meu bem! A gente se entende como ninguém."></div>
+            </div>
+            <div class="btn-container">
+                <button class="btn-pixel" onclick="nextStage(8)">< VOLTAR</button>
+                <button class="btn-pixel" onclick="nextStage(10)">CONTINUAR ></button>
+            </div>
+        </section>
+
+        <!-- MÊS 6 - PARTE 1 (9) -->
+        <section class="stage" id="stage-10">
+            <div class="level-indicator">MOMENTOS ESPECIAIS</div>
+            <div class="photo-gallery">
+                <div class="arcade-frame"><img src="ele_dates.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="familia_sc.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="theCar.JPEG" alt="Foto"></div>
+            </div>
+            <div class="dialogue-box">
+                <div class="dialogue-text" data-text="São tanto momentos bons ao teu lado, meu bem. Amei visitar Santa Cruz e conhecer o resto da sua família, eles me receberam muito bem, são todos ótimos."></div>
+            </div>
+            <div class="btn-container">
+                <button class="btn-pixel" onclick="nextStage(9)">< VOLTAR</button>
+                <button class="btn-pixel" onclick="nextStage(11)">CONTINUAR ></button>
+            </div>
+        </section>
+
+        <!-- MÊS 6 - PARTE 2 (10) -->
+        <section class="stage" id="stage-11">
+            <div class="level-indicator">MEU ANIVERSÁRIO</div>
+            <div class="photo-gallery">
+                <div class="arcade-frame"><img src="us_dates.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="present_birthday.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="us_birthday.JPEG" alt="Foto"></div>
+            </div>
+            <div class="dialogue-box">
+                <div class="dialogue-text" data-text="Obrigada pelo presente incrível de aniversário, você faz eu me sentir a mulher mais amada e sortuda desse mundo."></div>
+            </div>
+            <div class="btn-container">
+                <button class="btn-pixel" onclick="nextStage(10)">< VOLTAR</button>
+                <button class="btn-pixel" onclick="nextStage(12)">CONTINUAR ></button>
+            </div>
+        </section>
+
+        <!-- MÊS 6 - PARTE 3 (11) -->
+        <section class="stage" id="stage-12">
+            <div class="level-indicator">ACREDITAR NA GENTE</div>
+            <div class="photo-gallery">
+                <div class="arcade-frame"><img src="us_anoNovo.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="believe.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="him_jupz.jpeg" alt="Foto"></div>
+            </div>
+            <div class="dialogue-box">
+                <div class="dialogue-text" data-text="Algo sobre a gente ser fã um do outro e acreditar muito na gente. Que nunca paremos de ter certeza."></div>
+            </div>
+            <div class="btn-container">
+                <button class="btn-pixel" onclick="nextStage(11)">< VOLTAR</button>
+                <button class="btn-pixel" onclick="nextStage(13)">CONTINUAR ></button>
+            </div>
+        </section>
+
+        <!-- MÊS 6 - PARTE 4 (12) -->
+        <section class="stage" id="stage-13">
+            <div class="level-indicator">A gente explorando as coisas</div>
+            <div class="photo-gallery">
+                <div class="arcade-frame"><img src="us_carnaval1.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="us_pedraDoaltar.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="us_tenebra.JPEG" alt="Foto"></div>
+            </div>
+            <div class="dialogue-box">
+                <div class="dialogue-text" data-text="Sendo feliz contigo em todos os cantos que já visitamos."></div>
+            </div>
+            <div class="btn-container">
+                <button class="btn-pixel" onclick="nextStage(12)">< VOLTAR</button>
+                <button class="btn-pixel" onclick="nextStage(14)">CONTINUAR ></button>
+            </div>
+        </section>
+
+        <!-- MÊS 6 - PARTE 5 (13) -->
+        <section class="stage" id="stage-14">
+            <div class="level-indicator">FAMILIA</div>
+            <div class="photo-gallery">
+                <div class="arcade-frame"><img src="nanika2.JPEG" alt="Foto"></div>
+                <div class="arcade-frame">
+                    <video controls><source src="nanika.MP4" type="video/mp4"></video>
+                </div>
+                <div class="arcade-frame"><img src="family_mainha.JPEG" alt="Foto"></div>
+            </div>
+            <div class="dialogue-box">
+                <div class="dialogue-text" data-text="Ter adotado Nanika e ver todo o teu cuidado e atenção com ela me faz ter certeza de que vamos ter filhos muito amados e felizes."></div>
+            </div>
+            <div class="btn-container">
+                <button class="btn-pixel" onclick="nextStage(13)">< VOLTAR</button>
+                <button class="btn-pixel" onclick="nextStage(15)">CONTINUAR ></button>
+            </div>
+        </section>
+
+        <!-- MÊS 6 - PARTE 6 (14) -->
+        <section class="stage" id="stage-15">
+            <div class="level-indicator">Sendo lindos</div>
+            <div class="photo-gallery">
+                <div class="arcade-frame"><img src="festa1.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="us_party.jpeg"></div>
+                <div class="arcade-frame"><img src="festa2.JPEG" alt="Foto"></div>
+            </div>
+            <div class="dialogue-box">
+                <div class="dialogue-text" data-text="Adoro performar contigo por ai. Casal bonito da porra!"></div>
+            </div>
+            <div class="btn-container">
+                <button class="btn-pixel" onclick="nextStage(14)">< VOLTAR</button>
+                <button class="btn-pixel" onclick="nextStage(16)">CONTINUAR ></button>
+            </div>
+        </section>
+
+        <!-- MÊS 6 - PARTE 7 (15) -->
+        <section class="stage" id="stage-16">
+            <div class="level-indicator">Praias, cachoeiras e piscinas</div>
+            <div class="photo-gallery">
+                <div class="arcade-frame"><img src="us_praia.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="us_pedra.JPEG"></div>
+                <div class="arcade-frame"><img src="us_piscina.JPEG" alt="Foto"></div>
+            </div>
+            <div class="dialogue-box">
+                <div class="dialogue-text" data-text="Nosso amor se fortalace por compartilharmos a vontade de estar dentro d'agua juntinhos."></div>
+            </div>
+            <div class="btn-container">
+                <button class="btn-pixel" onclick="nextStage(15)">< VOLTAR</button>
+                <button class="btn-pixel" onclick="nextStage(17)">CONTINUAR ></button>
+            </div>
+        </section>
+
+        <!-- MÊS 6 - PARTE 8 (16) -->
+        <section class="stage" id="stage-17">
+            <div class="level-indicator">TODOS OS ROLÊS CONTIGO</div>
+            <div class="photo-gallery">
+                <div class="arcade-frame"><img src="us_pp.JPEG" alt="Foto"></div>
+                <div class="arcade-frame"><img src="manuela.JPEG"></div>
+                <div class="arcade-frame"><img src="kissing.JPEG" alt="Foto"></div>
+            </div>
+            <div class="dialogue-box">
+                <div class="dialogue-text" data-text="Todo canto que a gente vai, a gente é a gente."></div>
+            </div>
+            <div class="btn-container">
+                <button class="btn-pixel" onclick="nextStage(16)">< VOLTAR</button>
+                <button class="btn-pixel" onclick="nextStage('final')">THE END></button>
+            </div>
+        </section>
+
+        <!-- FINAL STAGE -->
+        <section class="stage" id="stage-final">
+            <div class="final-card">
+                <h2>THE END: Feliz 6 meses!</h2>
+                <p style="font-size:26px; color:#fff; margin-bottom:15px;"></p>
+                <textarea class="love-textarea" id="loveMessage" placeholder="Foi mal não conseguir comprar nada..."></textarea>
+                <p style="font-size:24px; color:var(--neon-cyan);">Deseja salvar esse progresso para a eternidade?</p>,
+                
+                <div class="choice-container">
+                    <button class="btn-pixel" style="background-color:var(--neon-green); color:#000;" onclick="triggerVictory('sim')">SIM</button>
+                    <button class="btn-pixel" style="background-color:var(--neon-cyan); color:#000;" onclick="triggerVictory('com_certeza')">COM CERTEZA</button>
+                </div>
+                <!-- Botão voltar na tela final caso ele queira rever -->
+                <div class="choice-container" style="margin-top: 30px;">
+                    <button class="btn-pixel" onclick="nextStage(1)">REINICIAR</button>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- MODAL PARA MÍDIAS (NOVO) -->
+    <div id="mediaModal" class="modal">
+        <span class="modal-close" onclick="closeModal()">X</span>
+        <div id="modalBody" style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
+            <!-- A imagem ou vídeo vai ser renderizada aqui via JS -->
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        function nextStage(targetIndex) {
+    let targetId = 'stage-' + targetIndex;
+    let targetElement = document.getElementById(targetId);
+    
+    if (targetIndex === 1) {
+        let music = document.getElementById('bg-music');
+        music.volume = 0.4;
+        music.play().then(() => {
+            // Se a música tocar com sucesso, ativa a animação
+            document.getElementById('vinyl').classList.add('playing');
+            document.getElementById('notes').classList.add('playing');
+        }).catch(error => {
+            console.log("O navegador bloqueou o áudio automático:", error);
+        });
+    }
+
+    if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth' });
+                    
+                // Pega a quantidade de fases automaticamente (excluindo a tela inicial e final)
+                let totalStages = document.querySelectorAll('.stage').length - 2;
+                let currentProgress = 0;
+                
+                if(targetIndex === 'final') {
+                    currentProgress = 100;
+                } else {
+                    currentProgress = Math.round((targetIndex / totalStages) * 100);
+                    if (currentProgress > 100) currentProgress = 100;
+                }
+                
+                document.getElementById('xp-bar').style.width = currentProgress + '%';
+                document.getElementById('xp-text').innerText = currentProgress + '%';
+
+                setTimeout(() => {
+                    let textContainer = targetElement.querySelector('.dialogue-text');
+                    if (textContainer && textContainer.getAttribute('data-text')) {
+                        typeWriter(textContainer, textContainer.getAttribute('data-text'), 0);
+                    }
+                }, 600);
+            }
+        }
+
+        // Função de efeito máquina de escrever
+        function typeWriter(element, text, index) {
+            if (index === 0) {
+                element.innerHTML = '';
+            }
+            if (index < text.length) {
+                element.innerHTML += text.charAt(index);
+                setTimeout(() => {
+                    typeWriter(element, text, index + 1);
+                }, 30);
+            }
+        }
+
+        // Funções do Modal de Mídias (NOVO)
+        function openModal(element) {
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = ''; // Limpa o modal
+            
+            if (element.tagName === 'IMG') {
+                modalBody.innerHTML = `<img src="${element.src}" class="modal-content">`;
+            } else if (element.tagName === 'VIDEO') {
+                // Pega o src da tag source que está dentro do vídeo
+                const sourceElement = element.querySelector('source');
+                const videoSrc = sourceElement ? sourceElement.src : element.src;
+                modalBody.innerHTML = `<video class="modal-content" controls autoplay><source src="${videoSrc}" type="video/mp4"></video>`;
+            }
+            
+            document.getElementById('mediaModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('mediaModal').style.display = 'none';
+            document.getElementById('modalBody').innerHTML = ''; // Limpa para pausar o vídeo
+        }
+
+        // Eventos e inicializações
+        window.onload = function() {
+            // Chuva de corações
+            setInterval(createPixelHeart, 400);
+            
+            // Texto final padrão
+            document.getElementById('loveMessage').value = "Feliz 6 meses, meu amor! Me desculpe não poder te comprar nada elaborado, utilizei do meu tempo para criar esse sistema de memórias nossas. Obrigada por todo o esforço, cuidado e atenção com a gente, eu te amo muito! ❤️ - Com amor, Julia";
+
+            // Adicionar evento de clique em todos os quadros (NOVO)
+            const arcadeFrames = document.querySelectorAll('.arcade-frame');
+            arcadeFrames.forEach(frame => {
+                frame.addEventListener('click', function() {
+                    const img = this.querySelector('img');
+                    const vid = this.querySelector('video');
+                    
+                    if (img) openModal(img);
+                    if (vid) openModal(vid);
+                });
+            });
+
+            // Fecha o modal caso o usuário clique no fundo preto (fora da foto/vídeo)
+            document.getElementById('mediaModal').addEventListener('click', function(e) {
+                if(e.target === this || e.target.id === 'modalBody') {
+                    closeModal();
+                }
+            });
+        };
+
+        // Função de corações flutuantes
+        function createPixelHeart() {
+            const heart = document.createElement('div');
+            heart.classList.add('pixel-heart');
+            heart.innerHTML = Math.random() > 0.5 ? '❤️' : '👾';
+            heart.style.left = Math.random() * 95 + 'vw';
+            
+            let duration = Math.random() * 3 + 3;
+            heart.style.animationDuration = duration + 's';
+            
+            document.body.appendChild(heart);
+            
+            setTimeout(() => {
+                heart.remove();
+            }, duration * 1000);
+        }
+
+        // Vitória
+        function triggerVictory(choice) {
+            alert("🎮 6 MESES SALVOS COM SUCESSO! \nJulia & Gabriel: Parceiros de equipe rumo ao próximo level!");
+            for(let i=0; i<30; i++) {
+                setTimeout(createPixelHeart, i * 50);
+            }
+        }
+    </script>
+</body>
+</html>
